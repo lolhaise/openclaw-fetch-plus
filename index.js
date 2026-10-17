@@ -8,10 +8,30 @@
 //   browser session (proxies, captcha solving, persistent per-site context).
 // If every rung fails it returns text naming the wall and the rungs tried.
 //
-// Imports use the unhashed plugin-sdk path, stable across updates.
-import { definePluginEntry } from "/usr/lib/node_modules/openclaw/dist/plugin-sdk/plugin-entry.js";
+import { createRequire } from "node:module";
+import path from "node:path";
 import { runFetchPlus } from "./lib/ladder.js";
-import { PROVIDER_ID } from "./lib/util.js";
+import { OPENCLAW_ROOT, PROVIDER_ID } from "./lib/util.js";
+
+// The plugin SDK under the same specifier the bundled plugins use. The gateway
+// loads plugin entries with a synchronous require, so this stays synchronous too
+// (a top-level await would push the load onto the slower transform path). A
+// plugin installed from a local folder has no node_modules/openclaw link, so the
+// resolved install root is the fallback.
+function loadPluginEntrySdk() {
+  const require = createRequire(import.meta.url);
+  try {
+    return require("openclaw/plugin-sdk/plugin-entry");
+  } catch (err) {
+    try {
+      return require(path.join(OPENCLAW_ROOT, "dist", "plugin-sdk", "plugin-entry.js"));
+    } catch {
+      throw err;
+    }
+  }
+}
+
+const { definePluginEntry } = loadPluginEntrySdk();
 
 const KEY_PATH = `plugins.entries.${PROVIDER_ID}.config.browserbaseApiKey`;
 
