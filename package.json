@@ -1,0 +1,60 @@
+{
+  "name": "openclaw-fetch-plus",
+  "version": "1.0.0",
+  "description": "OpenClaw web_fetch provider that climbs Browserbase Fetch, Fetch through proxies, then a real browser session, and names the wall when every rung fails",
+  "type": "module",
+  "main": "./index.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lolhaise/openclaw-fetch-plus.git"
+  },
+  "homepage": "https://github.com/lolhaise/openclaw-fetch-plus#readme",
+  "bugs": {
+    "url": "https://github.com/lolhaise/openclaw-fetch-plus/issues"
+  },
+  "keywords": [
+    "openclaw",
+    "plugin",
+    "web-fetch",
+    "browserbase",
+    "captcha",
+    "proxy",
+    "scraping"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test tests/"
+  },
+  "files": [
+    "index.js",
+    "lib/**",
+    "openclaw.plugin.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "openclaw": ">=2026.9.3"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    }
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ],
+    "install": {
+      "minHostVersion": ">=2026.9.3"
+    },
+    "compat": {
+      "pluginApi": ">=2026.9.3"
+    },
+    "build": {
+      "openclawVersion": "2026.9.3"
+    }
+  }
+}
