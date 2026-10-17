@@ -1,0 +1,295 @@
+{
+  "id": "fetch-plus",
+  "name": "fetch-plus",
+  "description": "web_fetch provider on Browserbase: Fetch, then Fetch with proxies, then a real browser session with captcha solving and a saved per-site login context; names the wall when every rung fails",
+  "enabledByDefault": true,
+  "activation": {
+    "onStartup": true
+  },
+  "contracts": {
+    "webFetchProviders": [
+      "fetch-plus"
+    ]
+  },
+  "configContracts": {
+    "secretInputs": {
+      "paths": [
+        {
+          "path": "browserbaseProjectId",
+          "expected": "string",
+          "ownerKind": "capability"
+        }
+      ]
+    }
+  },
+  "uiHints": {
+    "browserbaseApiKey": {
+      "label": "Browserbase API key",
+      "help": "SecretRef recommended, e.g. {\"source\":\"store\",\"provider\":\"default\",\"id\":\"BROWSERBASE_API_KEY\"}. Fallback: BROWSERBASE_API_KEY env var.",
+      "sensitive": true,
+      "placeholder": "bb_live_..."
+    },
+    "browserbaseProjectId": {
+      "label": "Browserbase project ID",
+      "help": "Optional; Browserbase infers the project from the key. SecretRef or plain string. Fallback: BROWSERBASE_PROJECT_ID env var.",
+      "sensitive": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "browserbaseApiKey": {
+        "type": [
+          "string",
+          "object"
+        ],
+        "description": "Browserbase API key: a SecretRef object or a string. Resolved by the core through the provider credentialPath; env BROWSERBASE_API_KEY is the fallback."
+      },
+      "browserbaseProjectId": {
+        "type": [
+          "string",
+          "object"
+        ],
+        "description": "Browserbase project ID: a SecretRef object or a string. Optional. Env BROWSERBASE_PROJECT_ID is the fallback."
+      },
+      "apiBaseUrl": {
+        "type": "string",
+        "default": "https://api.browserbase.com",
+        "description": "Browserbase API base URL (override only for testing)."
+      },
+      "fetchFormat": {
+        "type": "string",
+        "enum": [
+          "raw",
+          "markdown"
+        ],
+        "default": "raw",
+        "description": "raw = normal Fetch plus local Readability (cheapest, no project enablement needed); markdown = Browserbase Fetch Extract (priced higher, may need enablement; falls back to raw on a format error)."
+      },
+      "l1TimeoutMs": {
+        "type": "integer",
+        "minimum": 2000,
+        "maximum": 60000,
+        "default": 20000,
+        "description": "L1 (Fetch, no proxies) timeout."
+      },
+      "l2TimeoutMs": {
+        "type": "integer",
+        "minimum": 2000,
+        "maximum": 60000,
+        "default": 25000,
+        "description": "L2 (Fetch with proxies) timeout."
+      },
+      "l2Proxies": {
+        "type": "boolean",
+        "default": true,
+        "description": "Run L2. Off skips straight from L1 to L3."
+      },
+      "skipL2ForJsShell": {
+        "type": "boolean",
+        "default": false,
+        "description": "When L1 got a thin JavaScript shell, go straight to L3 (proxies cannot run JavaScript)."
+      },
+      "l3Enabled": {
+        "type": "boolean",
+        "default": true,
+        "description": "Run L3 (browser session)."
+      },
+      "l3Proxies": {
+        "type": "boolean",
+        "default": true,
+        "description": "Residential proxies on the L3 session; retried once without them on a proxy-provider refusal."
+      },
+      "l3MaxSeconds": {
+        "type": "integer",
+        "minimum": 10,
+        "maximum": 300,
+        "default": 60,
+        "description": "Hard cap for L3, session create to release."
+      },
+      "l3SolveCaptchas": {
+        "type": "boolean",
+        "default": true,
+        "description": "Browserbase captcha solving on the L3 session."
+      },
+      "l3Verified": {
+        "type": "boolean",
+        "default": false,
+        "description": "Browserbase Verified browser (advanced stealth). Scale plan only; leave off on Developer."
+      },
+      "l3BlockAds": {
+        "type": "boolean",
+        "default": true,
+        "description": "Ad blocking in the L3 browser."
+      },
+      "l3RecordSession": {
+        "type": "boolean",
+        "default": false,
+        "description": "Browserbase session recording (off keeps your pages out of replays)."
+      },
+      "l3LogSession": {
+        "type": "boolean",
+        "default": false,
+        "description": "Browserbase session logs."
+      },
+      "l3Region": {
+        "type": "string",
+        "enum": [
+          "",
+          "us-west-2",
+          "us-east-1",
+          "eu-central-1",
+          "ap-southeast-1"
+        ],
+        "default": "",
+        "description": "Session region; empty = Browserbase default."
+      },
+      "l3NetworkIdleMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 60000,
+        "default": 15000,
+        "description": "Wait for network idle, at most this long."
+      },
+      "l3CaptchaWaitMs": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 120000,
+        "default": 30000,
+        "description": "How long to wait out a captcha solve or a JS challenge page."
+      },
+      "l3Driver": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "playwright",
+          "cdp"
+        ],
+        "default": "auto",
+        "description": "auto = playwright-core from the OpenClaw install, else the built-in minimal CDP client."
+      },
+      "contextStrategy": {
+        "type": "string",
+        "enum": [
+          "site",
+          "host",
+          "none"
+        ],
+        "default": "site",
+        "description": "One persistent Browserbase context per site group (site), per hostname (host), or none."
+      },
+      "contextGroups": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "default": {},
+        "description": "Extra site groups sharing one context, e.g. {\"atlassian\": [\"atlassian.net\", \"atlassian.com\"]}."
+      },
+      "contextPersist": {
+        "type": "boolean",
+        "default": true,
+        "description": "Save cookies and logins back into the context after each session."
+      },
+      "contextWaitMs": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 60000,
+        "default": 8000,
+        "description": "Wait this long for a busy context before running without it."
+      },
+      "contextSettleMs": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 30000,
+        "default": 3000,
+        "description": "Hold a context this long after a persisting session closes."
+      },
+      "minVisibleChars": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 20000,
+        "default": 500,
+        "description": "Below this much readable text, a page that should have more counts as blocked or thin."
+      },
+      "totalMaxSeconds": {
+        "type": "integer",
+        "minimum": 20,
+        "maximum": 600,
+        "default": 110,
+        "description": "Outer cap for one ladder run."
+      },
+      "failureMode": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "payload",
+          "throw"
+        ],
+        "default": "auto",
+        "description": "auto: durable walls come back as a text result, transient walls (timeout, Browserbase busy or down) are thrown so the core does not cache them."
+      },
+      "blockPrivateHosts": {
+        "type": "boolean",
+        "default": true,
+        "description": "Refuse loopback and private-network hosts."
+      },
+      "allowInsecureSsl": {
+        "type": "boolean",
+        "default": false,
+        "description": "Let Browserbase Fetch skip TLS verification."
+      },
+      "alertFetchCalls": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 5000,
+        "description": "Monthly Fetch API calls before an alerts.log line."
+      },
+      "alertProxyBytes": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 2147483648,
+        "description": "Monthly proxy bytes before an alerts.log line."
+      },
+      "alertBrowserHours": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 150,
+        "description": "Monthly browser hours before an alerts.log line."
+      },
+      "stateDir": {
+        "type": "string",
+        "default": "~/.cache/openclaw-fetch-plus",
+        "description": "calls.jsonl, usage-YYYY-MM.json, alerts.log, contexts.json."
+      },
+      "playwrightCorePath": {
+        "type": "string",
+        "description": "Override path to playwright-core's index.mjs."
+      },
+      "noLog": {
+        "type": "boolean",
+        "default": false,
+        "description": "Skip calls.jsonl."
+      },
+      "l3FirstHosts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": [],
+        "description": "Host suffixes that skip L1/L2 and start at L3 (real browser): sites whose JavaScript shell carries enough boilerplate to pass every text check, e.g. [\"shop.example.com\"]."
+      },
+      "minVisibleCharsHard": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 5000,
+        "default": 200,
+        "description": "Hard floor: an HTML page with fewer article characters than this is thin whatever its size (a 139-character Akamai interstitial passes the soft check)."
+      }
+    }
+  }
+}
