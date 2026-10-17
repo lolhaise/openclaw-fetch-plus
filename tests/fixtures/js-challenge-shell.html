@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Loading...</title>
+<script>
+  (function () {
+    var form = document.forms[0];
+    var answer = solveProofOfWork(window.__seed, 18);
+    form.elements.namedItem("solution").value = answer;
+    form.submit();
+  })();
+</script>
+</head>
+<body>
+<form method="post" action="/svc/js_challenge">
+  <input type="hidden" name="solution" value="">
+</form>
+<p>Reddit</p>
+</body>
+</html>
